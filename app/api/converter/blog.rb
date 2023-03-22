@@ -10,8 +10,6 @@ module Converter
            ]
       # success: API::V2::Entities::blog
       params do
-        requires :user_id,
-                 type: Integer
         requires :title,
                  type: String
         optional :comment_body,
@@ -19,7 +17,7 @@ module Converter
       end
       post do
         declared_params = declared(params, include_missing: false).except(:comment_body)
-        blog = ::Blog.new(declared_params)
+        blog = current_user.blogs.new(declared_params)
         if blog.save
           ::Comment.create!(commentable: post, body: params[:comment_body])
           present blog
@@ -33,7 +31,7 @@ module Converter
              { code: 401, message: 'Invalid bearer token' }
            ]
       get do
-        ::Blog.all
+        current_user.blogs
       end
 
       desc 'Returns array of blogs as paginated collection',
@@ -48,7 +46,7 @@ module Converter
       end
       put do
         declared_params = declared(params, include_missing: false).except(:id)
-        blog = ::Blog.find_by(id: params[:id])
+        blog = current_user.blogs.find_by(id: params[:id])
         if blog.update(declared_params)
           present blog
         else
@@ -65,13 +63,10 @@ module Converter
                  type: Integer
       end
       delete do
-        blog = ::Blog.find_by(id: params[:id])
+        blog = current_user.blogs.find_by(id: params[:id])
         error!({ error: 'blog not able to found' }, 403) if blog.nil?
-        if blog.delete
-          present blog
-        else
-          error!({ error: 'blog not able to delete' }, 400)
-        end
+        error!({ error: 'blog not able to delete' }, 400) if blog.destroy
+        present blog
       end
 
     end

@@ -10,8 +10,6 @@ module Converter
            ]
       # success: API::V2::Entities::post
       params do
-        requires :user_id,
-                 type: Integer
         requires :title,
                  type: String
         optional :comment_body,
@@ -19,7 +17,7 @@ module Converter
       end
       post do
         declared_params = declared(params, include_missing: false).except(:comment_body)
-        post = ::Post.new(declared_params)
+        post = current_user.posts.new(declared_params)
         if post.save
           ::Comment.create!(commentable: post, body: params[:comment_body])
           present post
@@ -33,7 +31,7 @@ module Converter
              { code: 401, message: 'Invalid bearer token' }
            ]
       get do
-        ::Post.all
+        current_user.posts
       end
 
       desc 'Returns array of posts as paginated collection',
@@ -48,12 +46,9 @@ module Converter
       end
       put do
         declared_params = declared(params, include_missing: false).except(:id)
-        post = ::Post.find_by(id: params[:id])
-        if post.update(declared_params)
-          present post
-        else
-          error!({ error: 'post not updated' }, 400)
-        end
+        post = current_user.posts.find_by(id: params[:id])
+        error!({ error: 'post not updated' }, 400) unless post.update(declared_params)
+        present post
       end
 
       desc 'delete array of posts as paginated collection',
@@ -65,14 +60,10 @@ module Converter
                  type: Integer
       end
       delete do
-        post = ::Post.find_by(id: params[:id])
+        post = current_user.posts.find_by(id: params[:id])
         error!({ error: 'post not able to found' }, 403) if post.nil?
-
-        if post.delete
-          present post
-        else
-          error!({ error: 'post not able to delete' }, 400)
-        end
+        error!({ error: 'post not able to delete' }, 400) unless post.destroy
+        present post
       end
 
     end

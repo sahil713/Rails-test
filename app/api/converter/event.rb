@@ -10,8 +10,6 @@ module Converter
            ]
       # success: API::V2::Entities::event
       params do
-        requires :user_id,
-                 type: Integer
         requires :title,
                  type: String
         optional :comment_body,
@@ -19,7 +17,7 @@ module Converter
       end
       post do
         declared_params = declared(params, include_missing: false).except(:comment_body)
-        event = ::Event.new(declared_params)
+        event = current_user.events.new(declared_params)
         if event.save
           ::Comment.create!(commentable: post, body: params[:comment_body])
           present event
@@ -33,7 +31,7 @@ module Converter
              { code: 401, message: 'Invalid bearer token' }
            ]
       get do
-        ::Event.all
+        current_user.events
       end
 
       desc 'Returns array of events as paginated collection',
@@ -48,7 +46,7 @@ module Converter
       end
       put do
         declared_params = declared(params, include_missing: false).except(:id)
-        event = ::Event.find_by(id: params[:id])
+        event = current_user.events.find_by(id: params[:id])
         if event.update(declared_params)
           present event
         else
@@ -65,14 +63,10 @@ module Converter
                  type: Integer
       end
       delete do
-        event = ::Event.find_by(id: params[:id])
+        event = current_user.events.find_by(id: params[:id])
         error!({ error: 'Event not able to found' }, 403) if event.nil?
-
-        if event.delete
-          present event
-        else
-          error!({ error: 'event not able to delete' }, 400)
-        end
+        error!({ error: 'event not able to delete' }, 400) unless event.destroy
+        present event
       end
 
     end
