@@ -1,13 +1,14 @@
 Rails.application.routes.draw do
-  scope :api, defaults: { format: :json } do
     devise_for :users
-  end  # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
+    resources :sessions
 
   # Defines the root path route ("/")
   # root "articles#index"
-  mount Converter::User => '/api'
-  mount Converter::Event => '/event'
-  mount Converter::Post => '/post'
-  mount Converter::Blog => '/blog'
+    scope :api  do
+  mount Converter::User => '/'
+  mount Converter::Event => '/'
+  mount Converter::Post => '/'
+  mount Converter::Blog => '/'
+  end
 
 end
